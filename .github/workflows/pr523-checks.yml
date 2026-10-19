@@ -34,10 +34,11 @@ jobs:
         with:
           ref: 6a383a9b0091c8d678de1970e9afdb9523fc5ef6
           persist-credentials: false
-      - name: Verify PR head
+      - name: Prepare workspace and verify PR head
         env:
           EXPECTED_PR_HEAD: 6a383a9b0091c8d678de1970e9afdb9523fc5ef6
         run: |
+          chown root:root .
           test "$(git rev-parse HEAD)" = "$EXPECTED_PR_HEAD"
           git log -1 --format=fuller
       - name: Update build environment
