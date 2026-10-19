@@ -1,0 +1,55 @@
+name: PR 523 build validation
+
+on:
+  push:
+    branches: [ci-pr523-checks]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build PR 523 (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Mint 22
+            mint_version: mint22
+            image: linuxmintd/mint22.3-amd64
+          - name: LMDE 7
+            mint_version: lmde7
+            image: linuxmintd/lmde7-amd64
+          - name: Mint 27
+            mint_version: mint27
+            image: linuxmintd/mint27-amd64
+    container:
+      image: ${{ matrix.image }}
+      options: --security-opt seccomp=unconfined
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v7
+        with:
+          ref: 6a383a9b0091c8d678de1970e9afdb9523fc5ef6
+          persist-credentials: false
+      - name: Verify PR head
+        env:
+          EXPECTED_PR_HEAD: 6a383a9b0091c8d678de1970e9afdb9523fc5ef6
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_PR_HEAD"
+          git log -1 --format=fuller
+      - name: Update build environment
+        run: |
+          echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+          sudo apt-get update
+          sudo apt-get -y dist-upgrade
+          sudo apt-get install -y python-is-python3
+      - name: Install first-class dependencies
+        uses: linuxmint/github-actions/install-deps@f54e78132dda274254ab8cc5097386e79fa0c474
+        with:
+          mint_version: ${{ matrix.mint_version }}
+          dependencies: linuxmint/xapp, linuxmint/cinnamon-desktop
+      - name: Build packages
+        uses: linuxmint/github-actions/real-build@f54e78132dda274254ab8cc5097386e79fa0c474
